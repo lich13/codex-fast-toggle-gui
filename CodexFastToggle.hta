@@ -1,0 +1,643 @@
+<!doctype html>
+<html>
+<head>
+  <meta http-equiv="x-ua-compatible" content="IE=11">
+  <meta charset="utf-8">
+  <title>Codex Fast Toggle</title>
+  <hta:application
+    id="CodexFastToggle"
+    applicationname="Codex Fast Toggle"
+    border="thin"
+    borderstyle="normal"
+    caption="yes"
+    contextmenu="no"
+    icon="%TEMP%\CodexFastToggle.ico"
+    maximizebutton="no"
+    minimizebutton="yes"
+    scroll="no"
+    singleinstance="yes"
+    sysmenu="yes"
+    windowstate="normal"
+  />
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #eef3f8;
+      color: #142033;
+    }
+    .wrap {
+      padding: 18px;
+      width: 444px;
+    }
+    .hero {
+      padding: 16px;
+      border: 1px solid #d7e1eb;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 10px 30px rgba(16, 32, 55, 0.10);
+      margin-bottom: 14px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .appIcon {
+      width: 58px;
+      height: 58px;
+      border-radius: 14px;
+      box-shadow: 0 8px 18px rgba(13, 23, 38, 0.25);
+    }
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 650;
+      line-height: 1.15;
+    }
+    .sub {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #5b6b7c;
+    }
+    .status {
+      padding: 12px 14px;
+      border: 1px solid #cfdbe7;
+      background: #f8fbff;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    .status strong {
+      font-size: 18px;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    button {
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid #a8b6c5;
+      border-radius: 6px;
+      background: #fff;
+      color: #142033;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    button.primary {
+      background: #1268e3;
+      border-color: #1268e3;
+      color: #fff;
+      font-weight: 600;
+    }
+    label {
+      display: block;
+      margin: 8px 0 12px;
+      font-size: 13px;
+    }
+    pre {
+      height: 112px;
+      overflow: auto;
+      margin: 0;
+      padding: 10px;
+      border: 1px solid #1b2a3d;
+      border-radius: 8px;
+      background: #08111e;
+      color: #d7e1ef;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+  </style>
+  <script language="JScript">
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var shell = new ActiveXObject("WScript.Shell");
+    var userProfile = shell.ExpandEnvironmentStrings("%USERPROFILE%");
+    var systemRoot = envOr("SystemRoot", "C:\\Windows");
+    var localAppData = shell.ExpandEnvironmentStrings("%LOCALAPPDATA%");
+    var programFiles = shell.ExpandEnvironmentStrings("%PROGRAMFILES%");
+    var programFilesX86 = shell.ExpandEnvironmentStrings("%PROGRAMFILES(X86)%");
+    var codexHome = envOr("CODEX_HOME", fso.BuildPath(userProfile, ".codex"));
+    var codexExeOverride = envOr("CODEX_EXE", "");
+    var statePath = fso.BuildPath(codexHome, ".codex-global-state.json");
+    var stateBackupPath = fso.BuildPath(codexHome, ".codex-global-state.json.bak");
+    var backupDir = fso.BuildPath(codexHome, "fast-toggle-backups");
+    var windowIconBase64 = "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";
+    var headerIconBase64 = "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";
+
+    window.resizeTo(494, 428);
+
+    function envOr(name, fallback) {
+      var value = shell.ExpandEnvironmentStrings("%" + name + "%");
+      if (!value || value === "%" + name + "%") return fallback;
+      return value;
+    }
+
+    function log(message) {
+      var box = document.getElementById("log");
+      var now = new Date();
+      var stamp = pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds());
+      box.innerText += "[" + stamp + "] " + message + "\n";
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function pad2(n) {
+      return n < 10 ? "0" + n : "" + n;
+    }
+
+    function setupIcons() {
+      try {
+        document.getElementById("appIcon").src = "data:image/png;base64," + headerIconBase64;
+      } catch (e) {
+      }
+      try {
+        runRuntime("WriteIcon", false, false);
+        var iconPath = tempPath("CodexFastToggle.ico");
+        document.getElementById("CodexFastToggle").icon = iconPath;
+      } catch (e) {
+      }
+    }
+
+    function psLiteral(value) {
+      return "'" + String(value).replace(/'/g, "''") + "'";
+    }
+
+    function winQuote(value) {
+      return '"' + String(value).replace(/"/g, '""') + '"';
+    }
+
+    function tempPath(name) {
+      return fso.BuildPath(envOr("TEMP", fso.GetSpecialFolder(2).Path), name);
+    }
+
+    function writeUtf16File(path, text) {
+      var file = fso.CreateTextFile(path, true, true);
+      file.Write(text);
+      file.Close();
+    }
+
+    function readAsciiFile(path) {
+      var file = fso.OpenTextFile(path, 1, false);
+      var text = file.ReadAll();
+      file.Close();
+      return text;
+    }
+
+    function powerShellExePath() {
+      var candidate = fso.BuildPath(systemRoot, "System32\\WindowsPowerShell\\v1.0\\powershell.exe");
+      if (fso.FileExists(candidate)) return candidate;
+      return "powershell.exe";
+    }
+
+    function buildPowerShellCommand(scriptPath, resultPath, action, enable, openAfter) {
+      var lines = [];
+      lines.push("$ErrorActionPreference='Stop'");
+      lines.push("$runtime=" + psLiteral(scriptPath));
+      lines.push("$result=" + psLiteral(resultPath));
+      lines.push("$action=" + psLiteral(action));
+      lines.push("$enableText=" + psLiteral(enable ? "true" : "false"));
+      lines.push("$openAfterText=" + psLiteral(openAfter ? "true" : "false"));
+      lines.push("function __w([string]$Message){try{$safe=([string]$Message)-replace '[\\r\\n]+',' ';$content='status=ERROR'+[Environment]::NewLine+'fast=False'+[Environment]::NewLine+'message='+$safe;[System.IO.File]::WriteAllText($result,$content,[System.Text.Encoding]::ASCII)}catch{}}");
+      lines.push("try{if($enableText -eq 'true'){$enableBool=$true}else{$enableBool=$false};if($openAfterText -eq 'true'){$openAfterBool=$true}else{$openAfterBool=$false};$text=[System.IO.File]::ReadAllText($runtime,[System.Text.Encoding]::Unicode);$script=[ScriptBlock]::Create($text);& $script -Action $action -Enable:$enableBool -OpenAfter:$openAfterBool;if(-not(Test-Path -LiteralPath $result)){__w 'Runtime finished without writing a result file.';exit 2};exit 0}catch{__w $_.Exception.Message;exit 1}");
+      return winQuote(powerShellExePath()) +
+        " -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command " +
+        winQuote(lines.join("; "));
+    }
+
+    function buildRuntimePowerShell() {
+      var lines = [];
+      lines.push("param([string]$Action = 'Status', [bool]$Enable = $false, [bool]$OpenAfter = $true)");
+      lines.push("$ErrorActionPreference = 'Stop'");
+      lines.push("$CodexHome = " + psLiteral(codexHome));
+      lines.push("$CodexExeOverride = " + psLiteral(codexExeOverride));
+      lines.push("$LocalAppData = " + psLiteral(localAppData));
+      lines.push("$ProgramFiles = " + psLiteral(programFiles));
+      lines.push("$ProgramFilesX86 = " + psLiteral(programFilesX86));
+      lines.push("$ResultPath = " + psLiteral(tempPath("CodexFastToggle.result.txt")));
+      lines.push("$IconPath = " + psLiteral(tempPath("CodexFastToggle.ico")));
+      lines.push("$IconBase64 = " + psLiteral(windowIconBase64));
+      lines.push("$Utf8NoBom = New-Object -TypeName System.Text.UTF8Encoding -ArgumentList $false");
+      lines.push("$StatePath = Join-Path $CodexHome '.codex-global-state.json'");
+      lines.push("$StateBackupPath = Join-Path $CodexHome '.codex-global-state.json.bak'");
+      lines.push("$BackupDir = Join-Path $CodexHome 'fast-toggle-backups'");
+      lines.push("function Write-Result([string]$Status, [bool]$Fast, [string]$Message) {");
+      lines.push("  $safe = ($Message -replace '[\\r\\n]+', ' ')");
+      lines.push("  $content = \"status=$Status`nfast=$Fast`nmessage=$safe\"");
+      lines.push("  [System.IO.File]::WriteAllText($ResultPath, $content, [System.Text.Encoding]::ASCII)");
+      lines.push("}");
+      lines.push("function Read-State([string]$Path) {");
+      lines.push("  if (Test-Path -LiteralPath $Path) { return [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8) }");
+      lines.push("  return '{\"electron-persisted-atom-state\":{}}'");
+      lines.push("}");
+      lines.push("function Write-State([string]$Path, [string]$Text) {");
+      lines.push("  $dir = Split-Path -Parent $Path");
+      lines.push("  if ($dir -and -not (Test-Path -LiteralPath $dir)) { [System.IO.Directory]::CreateDirectory($dir) | Out-Null }");
+      lines.push("  [System.IO.File]::WriteAllText($Path, $Text, $Utf8NoBom)");
+      lines.push("}");
+      lines.push("function Get-AtomRange([string]$Text) {");
+      lines.push("  $m = [System.Text.RegularExpressions.Regex]::Match($Text, '\"electron-persisted-atom-state\"\\s*:\\s*\\{')");
+      lines.push("  if (-not $m.Success) { return @{ Found = $false; Open = -1; Close = -1 } }");
+      lines.push("  $open = $m.Index + $m.Length - 1");
+      lines.push("  $i = $open + 1");
+      lines.push("  $depth = 0");
+      lines.push("  $inString = $false");
+      lines.push("  $escape = $false");
+      lines.push("  while ($i -lt $Text.Length) {");
+      lines.push("    $ch = $Text[$i]");
+      lines.push("    if ($inString) {");
+      lines.push("      if ($escape) { $escape = $false; $i++; continue }");
+      lines.push("      if ($ch -eq '\\') { $escape = $true; $i++; continue }");
+      lines.push("      if ($ch -eq '\"') { $inString = $false }");
+      lines.push("      $i++; continue");
+      lines.push("    }");
+      lines.push("    if ($ch -eq '\"') { $inString = $true; $i++; continue }");
+      lines.push("    if ($ch -eq '{' -or $ch -eq '[') { $depth++; $i++; continue }");
+      lines.push("    if ($ch -eq '}' -or $ch -eq ']') {");
+      lines.push("      if ($ch -eq '}' -and $depth -eq 0) { return @{ Found = $true; Open = $open; Close = $i } }");
+      lines.push("      if ($depth -gt 0) { $depth-- }");
+      lines.push("      $i++; continue");
+      lines.push("    }");
+      lines.push("    $i++");
+      lines.push("  }");
+      lines.push("  return @{ Found = $false; Open = $open; Close = -1 }");
+      lines.push("}");
+      lines.push("function Get-JsonValueEnd([string]$Text, [int]$Start, [int]$Limit) {");
+      lines.push("  $i = $Start");
+      lines.push("  while ($i -lt $Limit -and [char]::IsWhiteSpace($Text[$i])) { $i++ }");
+      lines.push("  if ($i -ge $Limit) { return $i }");
+      lines.push("  $ch = $Text[$i]");
+      lines.push("  if ($ch -eq '\"') {");
+      lines.push("    $i++");
+      lines.push("    $escape = $false");
+      lines.push("    while ($i -lt $Limit) {");
+      lines.push("      $v = $Text[$i]");
+      lines.push("      if ($escape) { $escape = $false; $i++; continue }");
+      lines.push("      if ($v -eq '\\') { $escape = $true; $i++; continue }");
+      lines.push("      if ($v -eq '\"') { return ($i + 1) }");
+      lines.push("      $i++");
+      lines.push("    }");
+      lines.push("    return $i");
+      lines.push("  }");
+      lines.push("  if ($ch -eq '{' -or $ch -eq '[') {");
+      lines.push("    $depth = 0");
+      lines.push("    $inString = $false");
+      lines.push("    $escape = $false");
+      lines.push("    while ($i -lt $Limit) {");
+      lines.push("      $v = $Text[$i]");
+      lines.push("      if ($inString) {");
+      lines.push("        if ($escape) { $escape = $false; $i++; continue }");
+      lines.push("        if ($v -eq '\\') { $escape = $true; $i++; continue }");
+      lines.push("        if ($v -eq '\"') { $inString = $false }");
+      lines.push("        $i++; continue");
+      lines.push("      }");
+      lines.push("      if ($v -eq '\"') { $inString = $true; $i++; continue }");
+      lines.push("      if ($v -eq '{' -or $v -eq '[') { $depth++; $i++; continue }");
+      lines.push("      if ($v -eq '}' -or $v -eq ']') {");
+      lines.push("        if ($depth -gt 0) { $depth-- }");
+      lines.push("        $i++");
+      lines.push("        if ($depth -eq 0) { return $i }");
+      lines.push("        continue");
+      lines.push("      }");
+      lines.push("      $i++");
+      lines.push("    }");
+      lines.push("    return $i");
+      lines.push("  }");
+      lines.push("  while ($i -lt $Limit -and $Text[$i] -ne ',') { $i++ }");
+      lines.push("  while ($i -gt $Start -and [char]::IsWhiteSpace($Text[$i - 1])) { $i-- }");
+      lines.push("  return $i");
+      lines.push("}");
+      lines.push("function Find-TopLevelAtomFieldRange([string]$Text, [string]$Name) {");
+      lines.push("  $atom = Get-AtomRange $Text");
+      lines.push("  if (-not $atom.Found) { return @{ Found = $false; Atom = $atom } }");
+      lines.push("  $start = $atom.Open + 1");
+      lines.push("  $limit = $atom.Close");
+      lines.push("  $target = '\"' + $Name + '\"'");
+      lines.push("  $i = $start");
+      lines.push("  $depth = 0");
+      lines.push("  $inString = $false");
+      lines.push("  $escape = $false");
+      lines.push("  while ($i -lt $limit) {");
+      lines.push("    $ch = $Text[$i]");
+      lines.push("    if ($inString) {");
+      lines.push("      if ($escape) { $escape = $false; $i++; continue }");
+      lines.push("      if ($ch -eq '\\') { $escape = $true; $i++; continue }");
+      lines.push("      if ($ch -eq '\"') { $inString = $false }");
+      lines.push("      $i++; continue");
+      lines.push("    }");
+      lines.push("    if ($ch -eq '\"') {");
+      lines.push("      if ($depth -eq 0 -and $i + $target.Length -le $limit -and $Text.Substring($i, $target.Length) -eq $target) {");
+      lines.push("        $j = $i + $target.Length");
+      lines.push("        while ($j -lt $limit -and [char]::IsWhiteSpace($Text[$j])) { $j++ }");
+      lines.push("        if ($j -lt $limit -and $Text[$j] -eq ':') {");
+      lines.push("          $valueStart = $j + 1");
+      lines.push("          $valueEnd = Get-JsonValueEnd $Text $valueStart $limit");
+      lines.push("          $removeStart = $i");
+      lines.push("          $removeEnd = $valueEnd");
+      lines.push("          $k = $valueEnd");
+      lines.push("          while ($k -lt $limit -and [char]::IsWhiteSpace($Text[$k])) { $k++ }");
+      lines.push("          if ($k -lt $limit -and $Text[$k] -eq ',') {");
+      lines.push("            $removeEnd = $k + 1");
+      lines.push("          } else {");
+      lines.push("            $k = $i - 1");
+      lines.push("            while ($k -ge $start -and [char]::IsWhiteSpace($Text[$k])) { $k-- }");
+      lines.push("            if ($k -ge $start -and $Text[$k] -eq ',') { $removeStart = $k }");
+      lines.push("          }");
+      lines.push("          return @{ Found = $true; KeyStart = $i; ValueEnd = $valueEnd; RemoveStart = $removeStart; RemoveEnd = $removeEnd; Atom = $atom }");
+      lines.push("        }");
+      lines.push("      }");
+      lines.push("      $inString = $true; $i++; continue");
+      lines.push("    }");
+      lines.push("    if ($ch -eq '{' -or $ch -eq '[') { $depth++; $i++; continue }");
+      lines.push("    if ($ch -eq '}' -or $ch -eq ']') { if ($depth -gt 0) { $depth-- }; $i++; continue }");
+      lines.push("    $i++");
+      lines.push("  }");
+      lines.push("  return @{ Found = $false; Atom = $atom }");
+      lines.push("}");
+      lines.push("function Add-AtomField([string]$Text, [string]$Field) {");
+      lines.push("  $atom = Get-AtomRange $Text");
+      lines.push("  if (-not $atom.Found) { return '{\"electron-persisted-atom-state\":{' + $Field + '}}' }");
+      lines.push("  $insertAt = $atom.Open + 1");
+      lines.push("  $tail = $Text.Substring($insertAt, $atom.Close - $insertAt)");
+      lines.push("  $insert = $Field");
+      lines.push("  if ($tail -notmatch '^\\s*$') { $insert += ',' }");
+      lines.push("  return $Text.Substring(0, $insertAt) + $insert + $Text.Substring($insertAt)");
+      lines.push("}");
+      lines.push("function Set-StringField([string]$Text, [string]$Name, [string]$Value) {");
+      lines.push("  $replacement = '\"' + $Name + '\":\"' + $Value + '\"'");
+      lines.push("  $field = Find-TopLevelAtomFieldRange $Text $Name");
+      lines.push("  if ($field.Found) { return $Text.Substring(0, $field.KeyStart) + $replacement + $Text.Substring($field.ValueEnd) }");
+      lines.push("  return Add-AtomField $Text $replacement");
+      lines.push("}");
+      lines.push("function Set-BoolField([string]$Text, [string]$Name, [bool]$Value) {");
+      lines.push("  if ($Value) { $boolText = 'true' } else { $boolText = 'false' }");
+      lines.push("  $replacement = '\"' + $Name + '\":' + $boolText");
+      lines.push("  $field = Find-TopLevelAtomFieldRange $Text $Name");
+      lines.push("  if ($field.Found) { return $Text.Substring(0, $field.KeyStart) + $replacement + $Text.Substring($field.ValueEnd) }");
+      lines.push("  return Add-AtomField $Text $replacement");
+      lines.push("}");
+      lines.push("function Remove-Field([string]$Text, [string]$Name) {");
+      lines.push("  $field = Find-TopLevelAtomFieldRange $Text $Name");
+      lines.push("  if ($field.Found) { return $Text.Substring(0, $field.RemoveStart) + $Text.Substring($field.RemoveEnd) }");
+      lines.push("  return $Text");
+      lines.push("}");
+      lines.push("function Get-TopLevelAtomStringField([string]$Text, [string]$Name) {");
+      lines.push("  $m = [System.Text.RegularExpressions.Regex]::Match($Text, '\"electron-persisted-atom-state\"\\s*:\\s*\\{')");
+      lines.push("  if (-not $m.Success) { return $null }");
+      lines.push("  $i = $m.Index + $m.Length");
+      lines.push("  $target = '\"' + $Name + '\"'");
+      lines.push("  $depth = 0");
+      lines.push("  $inString = $false");
+      lines.push("  $escape = $false");
+      lines.push("  while ($i -lt $Text.Length) {");
+      lines.push("    $ch = $Text[$i]");
+      lines.push("    if ($inString) {");
+      lines.push("      if ($escape) { $escape = $false; $i++; continue }");
+      lines.push("      if ($ch -eq '\\') { $escape = $true; $i++; continue }");
+      lines.push("      if ($ch -eq '\"') { $inString = $false }");
+      lines.push("      $i++; continue");
+      lines.push("    }");
+      lines.push("    if ($ch -eq '\"') {");
+      lines.push("      if ($depth -eq 0 -and $i + $target.Length -le $Text.Length -and $Text.Substring($i, $target.Length) -eq $target) {");
+      lines.push("        $j = $i + $target.Length");
+      lines.push("        while ($j -lt $Text.Length -and [char]::IsWhiteSpace($Text[$j])) { $j++ }");
+      lines.push("        if ($j -lt $Text.Length -and $Text[$j] -eq ':') {");
+      lines.push("          $j++");
+      lines.push("          while ($j -lt $Text.Length -and [char]::IsWhiteSpace($Text[$j])) { $j++ }");
+      lines.push("          if ($j -lt $Text.Length -and $Text[$j] -eq '\"') {");
+      lines.push("            $j++");
+      lines.push("            $value = ''");
+      lines.push("            $valueEscape = $false");
+      lines.push("            while ($j -lt $Text.Length) {");
+      lines.push("              $v = $Text[$j]");
+      lines.push("              if ($valueEscape) { $value += $v; $valueEscape = $false; $j++; continue }");
+      lines.push("              if ($v -eq '\\') { $valueEscape = $true; $j++; continue }");
+      lines.push("              if ($v -eq '\"') { return $value }");
+      lines.push("              $value += $v");
+      lines.push("              $j++");
+      lines.push("            }");
+      lines.push("          }");
+      lines.push("        }");
+      lines.push("      }");
+      lines.push("      $inString = $true; $i++; continue");
+      lines.push("    }");
+      lines.push("    if ($ch -eq '{' -or $ch -eq '[') { $depth++; $i++; continue }");
+      lines.push("    if ($ch -eq '}' -or $ch -eq ']') {");
+      lines.push("      if ($ch -eq '}' -and $depth -eq 0) { return $null }");
+      lines.push("      if ($depth -gt 0) { $depth-- }");
+      lines.push("      $i++; continue");
+      lines.push("    }");
+      lines.push("    $i++");
+      lines.push("  }");
+      lines.push("  return $null");
+      lines.push("}");
+      lines.push("function Test-FastPath([string]$Path) {");
+      lines.push("  $value = Get-TopLevelAtomStringField (Read-State $Path) 'default-service-tier'");
+      lines.push("  return ($value -eq 'fast')");
+      lines.push("}");
+      lines.push("function Get-FastValuePath([string]$Path) {");
+      lines.push("  $value = Get-TopLevelAtomStringField (Read-State $Path) 'default-service-tier'");
+      lines.push("  if ($null -eq $value -or $value -eq '') { return '<missing>' }");
+      lines.push("  return $value");
+      lines.push("}");
+      lines.push("function Test-Fast {");
+      lines.push("  return (Test-FastPath $StatePath)");
+      lines.push("}");
+      lines.push("function Get-StateSummary {");
+      lines.push("  return ('main=' + (Get-FastValuePath $StatePath) + '; bak=' + (Get-FastValuePath $StateBackupPath) + '; home=' + $CodexHome)");
+      lines.push("}");
+      lines.push("function Rewrite-FastState([string]$Path, [bool]$On) {");
+      lines.push("  $text = Read-State $Path");
+      lines.push("  if ($On) {");
+      lines.push("    $text = Set-BoolField $text 'has-user-changed-service-tier' $true");
+      lines.push("    $text = Set-StringField $text 'default-service-tier' 'fast'");
+      lines.push("    $text = Set-BoolField $text 'has-seen-fast-mode-announcement' $true");
+      lines.push("  } else {");
+      lines.push("    $text = Set-BoolField $text 'has-user-changed-service-tier' $true");
+      lines.push("    $text = Set-StringField $text 'default-service-tier' 'flex'");
+      lines.push("    $text = Set-BoolField $text 'has-seen-fast-mode-announcement' $true");
+      lines.push("  }");
+      lines.push("  Write-State $Path $text");
+      lines.push("}");
+      lines.push("function Backup-File([string]$Path) {");
+      lines.push("  if (-not (Test-Path -LiteralPath $Path)) { return }");
+      lines.push("  if (-not (Test-Path -LiteralPath $BackupDir)) { [System.IO.Directory]::CreateDirectory($BackupDir) | Out-Null }");
+      lines.push("  $dest = Join-Path $BackupDir ((Split-Path -Leaf $Path) + '.' + (Get-Date -Format 'yyyyMMdd-HHmmss'))");
+      lines.push("  Copy-Item -LiteralPath $Path -Destination $dest -Force");
+      lines.push("}");
+      lines.push("function Test-DesktopExe([string]$Path) {");
+      lines.push("  if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)) { return $false }");
+      lines.push("  $dir = Split-Path -Parent $Path");
+      lines.push("  return (Test-Path -LiteralPath (Join-Path $dir 'resources\\app.asar'))");
+      lines.push("}");
+      lines.push("function Find-DesktopCodexExe {");
+      lines.push("  if (Test-DesktopExe $CodexExeOverride) { return $CodexExeOverride }");
+      lines.push("  $candidates = @(");
+      lines.push("    (Join-Path $LocalAppData 'Programs\\Codex\\Codex.exe'),");
+      lines.push("    (Join-Path $LocalAppData 'Codex\\Codex.exe'),");
+      lines.push("    (Join-Path $ProgramFiles 'Programs\\Codex\\Codex.exe'),");
+      lines.push("    (Join-Path $ProgramFiles 'Codex\\Codex.exe'),");
+      lines.push("    (Join-Path $ProgramFilesX86 'Programs\\Codex\\Codex.exe'),");
+      lines.push("    (Join-Path $ProgramFilesX86 'Codex\\Codex.exe')");
+      lines.push("  )");
+      lines.push("  foreach ($candidate in $candidates) { if (Test-DesktopExe $candidate) { return $candidate } }");
+      lines.push("  foreach ($dir in ($candidates | ForEach-Object { Split-Path -Parent $_ } | Select-Object -Unique)) {");
+      lines.push("    if (Test-Path -LiteralPath $dir) {");
+      lines.push("      foreach ($exe in Get-ChildItem -LiteralPath $dir -Filter '*.exe' -ErrorAction SilentlyContinue) {");
+      lines.push("        if ($exe.Name -notmatch '^(Update|Squirrel)\\.exe$' -and (Test-DesktopExe $exe.FullName)) { return $exe.FullName }");
+      lines.push("      }");
+      lines.push("    }");
+      lines.push("  }");
+      lines.push("  return ''");
+      lines.push("}");
+      lines.push("function Stop-Codex {");
+      lines.push("  Get-Process -ErrorAction SilentlyContinue | ForEach-Object {");
+      lines.push("    try { $path = $_.Path } catch { $path = $null }");
+      lines.push("    if ($path -and ([System.IO.Path]::GetFileName($path) -match '(?i)codex') -and (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $path) 'resources\\app.asar'))) {");
+      lines.push("      Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue");
+      lines.push("    }");
+      lines.push("  }");
+      lines.push("}");
+      lines.push("function Open-Codex {");
+      lines.push("  if (-not $OpenAfter) { return 'Codex reopen skipped' }");
+      lines.push("  $exe = Find-DesktopCodexExe");
+      lines.push("  if ($exe) { [System.Diagnostics.Process]::Start($exe) | Out-Null; return 'Opened desktop Codex' }");
+      lines.push("  return 'Desktop Codex not found; open manually'");
+      lines.push("}");
+      lines.push("try {");
+      lines.push("  if ($Action -eq 'WriteIcon') { [System.IO.File]::WriteAllBytes($IconPath, [System.Convert]::FromBase64String($IconBase64)); Write-Result 'OK' (Test-Fast) 'Icon ready'; exit 0 }");
+      lines.push("  if ($Action -eq 'Status') { Write-Result 'OK' (Test-Fast) ('Ready. ' + (Get-StateSummary)); exit 0 }");
+      lines.push("  if ($Action -eq 'Apply') {");
+      lines.push("    Stop-Codex");
+      lines.push("    Backup-File $StatePath");
+      lines.push("    Backup-File $StateBackupPath");
+      lines.push("    Rewrite-FastState $StatePath $Enable");
+      lines.push("    Rewrite-FastState $StateBackupPath $Enable");
+      lines.push("    $fastAfterWrite = Test-Fast");
+      lines.push("    $summaryAfterWrite = Get-StateSummary");
+      lines.push("    $openMessage = Open-Codex");
+      lines.push("    if ($Enable) { $changeMessage = 'Fast enabled. ' } else { $changeMessage = 'Fast disabled. ' }");
+      lines.push("    Write-Result 'OK' $fastAfterWrite ($changeMessage + $summaryAfterWrite + '. ' + $openMessage)");
+      lines.push("    exit 0");
+      lines.push("  }");
+      lines.push("  throw ('Unknown action: ' + $Action)");
+      lines.push("} catch {");
+      lines.push("  try { Write-Result 'ERROR' $false $_.Exception.Message } catch {}");
+      lines.push("  exit 1");
+      lines.push("}");
+      return lines.join("\r\n");
+    }
+
+    function parseResult(text) {
+      var result = { status: "ERROR", fast: false, message: "" };
+      var lines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
+      for (var i = 0; i < lines.length; i++) {
+        var at = lines[i].indexOf("=");
+        if (at < 0) continue;
+        var key = lines[i].substring(0, at);
+        var value = lines[i].substring(at + 1);
+        if (key === "status") result.status = value;
+        if (key === "fast") result.fast = /^true$/i.test(value);
+        if (key === "message") result.message = value;
+      }
+      return result;
+    }
+
+    function runRuntime(action, enable, openAfter) {
+      var scriptPath = tempPath("CodexFastToggle-runtime.ps1");
+      var resultPath = tempPath("CodexFastToggle.result.txt");
+      writeUtf16File(scriptPath, buildRuntimePowerShell());
+      if (fso.FileExists(resultPath)) fso.DeleteFile(resultPath, true);
+
+      var cmd = buildPowerShellCommand(scriptPath, resultPath, action, enable, openAfter);
+      var code = shell.Run(cmd, 0, true);
+      if (!fso.FileExists(resultPath)) throw new Error("PowerShell did not start or was blocked. Tried: " + powerShellExePath());
+      var result = parseResult(readAsciiFile(resultPath));
+      if (code !== 0 || result.status !== "OK") throw new Error(result.message || ("PowerShell exited with code " + code));
+      return result;
+    }
+
+    function isFastOn() {
+      return runRuntime("Status", false, false).fast;
+    }
+
+    function setStatus(enabled) {
+      document.getElementById("statusValue").innerText = enabled ? "ON" : "OFF";
+      document.getElementById("statusValue").style.color = enabled ? "#137333" : "#9a3412";
+      document.getElementById("toggleButton").innerText = enabled ? "关闭 Fast" : "开启 Fast";
+    }
+
+    function setStatusError() {
+      document.getElementById("statusValue").innerText = "ERR";
+      document.getElementById("statusValue").style.color = "#b42318";
+      document.getElementById("toggleButton").innerText = "刷新失败";
+    }
+
+    function refreshStatus() {
+      try {
+        var result = runRuntime("Status", false, false);
+        setStatus(result.fast);
+        log((result.message || "Status refreshed") + " -> " + (result.fast ? "ON" : "OFF"));
+      } catch (e) {
+        setStatusError();
+        log("ERROR: " + e.message);
+      }
+    }
+
+    function applyFast(enable) {
+      try {
+        var result = runRuntime("Apply", enable, document.getElementById("openAfter").checked);
+        setStatus(result.fast);
+        log(result.message || (enable ? "Fast enabled" : "Fast disabled"));
+      } catch (e) {
+        setStatusError();
+        log("ERROR: " + e.message);
+        alert("操作失败: " + e.message);
+      }
+    }
+
+    function toggleFast() {
+      applyFast(!isFastOn());
+    }
+
+    window.onload = function() {
+      setupIcons();
+      refreshStatus();
+      log("Ready");
+    };
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="header">
+        <img id="appIcon" class="appIcon" alt="">
+        <div>
+          <h1>Codex Fast Toggle</h1>
+          <div class="sub">Fast Mode switch for desktop Codex</div>
+        </div>
+      </div>
+      <div class="status">
+        <span>Fast Mode</span>
+        <strong id="statusValue">...</strong>
+      </div>
+      <div class="row">
+        <button id="toggleButton" class="primary" onclick="toggleFast()">切换</button>
+        <button onclick="applyFast(true)">开启</button>
+        <button onclick="applyFast(false)">关闭</button>
+        <button onclick="refreshStatus()">刷新</button>
+      </div>
+      <label>
+        <input id="openAfter" type="checkbox" checked>
+        切换后重新打开桌面版 Codex
+      </label>
+    </div>
+    <pre id="log"></pre>
+  </div>
+</body>
+</html>

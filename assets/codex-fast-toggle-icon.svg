@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Codex Fast Toggle icon">
+  <defs>
+    <linearGradient id="bg" x1="152" y1="78" x2="872" y2="946" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1f2937"/>
+      <stop offset="0.55" stop-color="#101827"/>
+      <stop offset="1" stop-color="#06111f"/>
+    </linearGradient>
+    <linearGradient id="switch" x1="215" y1="633" x2="809" y2="633" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#27d5ff"/>
+      <stop offset="1" stop-color="#2df8a9"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="394" y1="228" x2="630" y2="736" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff7ad"/>
+      <stop offset="0.42" stop-color="#42e8ff"/>
+      <stop offset="1" stop-color="#20f5a7"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#000814" flood-opacity="0.45"/>
+    </filter>
+    <filter id="glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect x="64" y="64" width="896" height="896" rx="224" fill="url(#bg)"/>
+  <path d="M225 190c71-59 158-91 252-91 199 0 366 147 393 338" fill="none" stroke="#2bd6ff" stroke-width="38" stroke-linecap="round" opacity="0.45"/>
+  <path d="M160 476c13-90 58-174 129-237" fill="none" stroke="#37f7b5" stroke-width="38" stroke-linecap="round" opacity="0.32"/>
+  <path d="M792 378l83 88 57-110" fill="none" stroke="#2bd6ff" stroke-width="38" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+
+  <g filter="url(#softShadow)">
+    <rect x="199" y="541" width="626" height="184" rx="92" fill="#07111d" stroke="#223044" stroke-width="18"/>
+    <rect x="229" y="571" width="566" height="124" rx="62" fill="url(#switch)" opacity="0.95"/>
+    <circle cx="670" cy="633" r="84" fill="#f8fbff"/>
+    <circle cx="670" cy="633" r="54" fill="#152033"/>
+  </g>
+
+  <g filter="url(#glow)" opacity="0.95">
+    <path d="M548 198 344 560h143l-63 266 263-406H532l16-222Z" fill="#24e3ff" opacity="0.35"/>
+  </g>
+  <path d="M548 198 344 560h143l-63 266 263-406H532l16-222Z" fill="url(#bolt)" stroke="#ecfffb" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M557 262 415 526h128l-45 164 118-222H488l69-206Z" fill="#ffffff" opacity="0.2"/>
+</svg>

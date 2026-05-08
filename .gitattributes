@@ -1,0 +1,9 @@
+*.hta text eol=crlf
+*.md text eol=lf
+*.plist text eol=lf
+*.svg text eol=lf
+*.png binary
+*.ico binary
+*.icns binary
+*.node binary
+Codex?Fast?Toggle.app/Contents/MacOS/CodexFastToggle text eol=lf

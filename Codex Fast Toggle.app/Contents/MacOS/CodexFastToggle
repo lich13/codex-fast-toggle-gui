@@ -1,0 +1,236 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+APP="${CODEX_APP:-/Applications/Codex.app}"
+STATE="$CODEX_HOME/.codex-global-state.json"
+STATE_APP_BACKUP="$CODEX_HOME/.codex-global-state.json.bak"
+BACKUP_DIR="$CODEX_HOME/fast-toggle-backups"
+
+is_fast_on() {
+  [[ -f "$STATE" ]] || return 1
+
+  /usr/bin/perl - "$STATE" <<'PERL'
+use strict;
+use warnings;
+
+my $path = shift @ARGV;
+open my $fh, "<:raw", $path or exit 1;
+local $/;
+my $text = <$fh>;
+
+$text =~ /"electron-persisted-atom-state"\s*:\s*\{/g or exit 1;
+my $i = pos($text);
+my $target = '"default-service-tier"';
+my $depth = 0;
+my $in_string = 0;
+my $escape = 0;
+my $len = length($text);
+
+while ($i < $len) {
+    my $ch = substr($text, $i, 1);
+
+    if ($in_string) {
+        if ($escape) {
+            $escape = 0;
+            $i++;
+            next;
+        }
+        if ($ch eq "\\") {
+            $escape = 1;
+            $i++;
+            next;
+        }
+        $in_string = 0 if $ch eq '"';
+        $i++;
+        next;
+    }
+
+    if ($ch eq '"') {
+        if ($depth == 0 && substr($text, $i, length($target)) eq $target) {
+            my $j = $i + length($target);
+            $j++ while $j < $len && substr($text, $j, 1) =~ /\s/;
+            if ($j < $len && substr($text, $j, 1) eq ":") {
+                $j++;
+                $j++ while $j < $len && substr($text, $j, 1) =~ /\s/;
+                if ($j < $len && substr($text, $j, 1) eq '"') {
+                    $j++;
+                    my $value = "";
+                    my $value_escape = 0;
+                    while ($j < $len) {
+                        my $v = substr($text, $j, 1);
+                        if ($value_escape) {
+                            $value .= $v;
+                            $value_escape = 0;
+                            $j++;
+                            next;
+                        }
+                        if ($v eq "\\") {
+                            $value_escape = 1;
+                            $j++;
+                            next;
+                        }
+                        exit($value eq "fast" ? 0 : 1) if $v eq '"';
+                        $value .= $v;
+                        $j++;
+                    }
+                }
+            }
+        }
+        $in_string = 1;
+        $i++;
+        next;
+    }
+
+    if ($ch eq "{" || $ch eq "[") {
+        $depth++;
+        $i++;
+        next;
+    }
+    if ($ch eq "}" || $ch eq "]") {
+        exit 1 if $ch eq "}" && $depth == 0;
+        $depth-- if $depth > 0;
+        $i++;
+        next;
+    }
+    $i++;
+}
+
+exit 1;
+PERL
+}
+
+desktop_codex_is_running() {
+  /usr/bin/pgrep -f "${APP}/Contents/MacOS/[C]odex" >/dev/null 2>&1
+}
+
+quit_codex() {
+  [[ "${CODEX_FAST_GUI_SKIP_APP:-0}" == "1" ]] && return
+
+  if desktop_codex_is_running; then
+    /usr/bin/osascript -e 'tell application id "com.openai.codex" to quit' >/dev/null 2>&1 || true
+    /bin/sleep 2
+  fi
+
+  if desktop_codex_is_running; then
+    /usr/bin/pkill -f "${APP}/Contents/MacOS/[C]odex" || true
+    /bin/sleep 1
+  fi
+}
+
+open_codex() {
+  [[ "${CODEX_FAST_GUI_SKIP_APP:-0}" == "1" || "${CODEX_FAST_GUI_NO_OPEN:-0}" == "1" ]] && return
+
+  if [[ -d "$APP" ]]; then
+    /usr/bin/open "$APP"
+  fi
+}
+
+notify_user() {
+  local message="$1"
+
+  if [[ "${CODEX_FAST_GUI_QUIET:-0}" == "1" ]]; then
+    printf '%s\n' "$message"
+    return
+  fi
+
+  /usr/bin/osascript -e 'display dialog "'"$message"'" buttons {"OK"} default button "OK" with title "Codex Fast Toggle"' >/dev/null
+}
+
+backup_file() {
+  local file="$1"
+  [[ -f "$file" ]] || return
+
+  /bin/mkdir -p "$BACKUP_DIR"
+  local stamp
+  stamp="$(/bin/date '+%Y%m%d-%H%M%S')"
+  /bin/cp -p "$file" "$BACKUP_DIR/$(/usr/bin/basename "$file").$stamp"
+}
+
+rewrite_state_file() {
+  local file="$1"
+  local enable="$2"
+
+  /bin/mkdir -p "$CODEX_HOME"
+  if [[ ! -f "$file" ]]; then
+    /bin/printf '{"electron-persisted-atom-state":{}}\n' >"$file"
+    /bin/chmod 600 "$file" || true
+  fi
+
+  ENABLE_FAST="$enable" /usr/bin/perl -0pi - "$file" <<'PERL'
+use strict;
+use warnings;
+
+my $enable = $ENV{ENABLE_FAST} // "";
+
+sub add_atom_field {
+    my ($text, $field) = @_;
+    if ($text =~ /"electron-persisted-atom-state"\s*:\s*\{/g) {
+        my $pos = pos($text);
+        my $tail = substr($text, $pos);
+        my $insert = $field;
+        $insert .= "," unless $tail =~ /^\s*\}/;
+        substr($text, $pos, 0) = $insert;
+        return $text;
+    }
+    return '{"electron-persisted-atom-state":{' . $field . '}}';
+}
+
+sub set_string_field {
+    my ($text, $name, $value) = @_;
+    my $quoted = quotemeta($name);
+    my $replacement = '"' . $name . '":"' . $value . '"';
+    if ($text =~ s/"$quoted"\s*:\s*"(?:\\.|[^"\\])*"/$replacement/) {
+        return $text;
+    }
+    return add_atom_field($text, $replacement);
+}
+
+sub set_bool_field {
+    my ($text, $name, $value) = @_;
+    my $quoted = quotemeta($name);
+    my $bool = $value ? "true" : "false";
+    my $replacement = '"' . $name . '":' . $bool;
+    if ($text =~ s/"$quoted"\s*:\s*(?:true|false)/$replacement/) {
+        return $text;
+    }
+    return add_atom_field($text, $replacement);
+}
+
+sub remove_field {
+    my ($text, $name) = @_;
+    my $quoted = quotemeta($name);
+    my $value = qr/(?:"(?:\\.|[^"\\])*"|true|false|null|-?\d+(?:\.\d+)?)/;
+    return $text if $text =~ s/\s*"$quoted"\s*:\s*$value\s*,//;
+    return $text if $text =~ s/,\s*"$quoted"\s*:\s*$value\s*//;
+    $text =~ s/"$quoted"\s*:\s*$value//;
+    return $text;
+}
+
+if ($enable eq "true") {
+    $_ = set_bool_field($_, "has-user-changed-service-tier", 1);
+    $_ = set_string_field($_, "default-service-tier", "fast");
+    $_ = set_bool_field($_, "has-seen-fast-mode-announcement", 1);
+} else {
+    $_ = set_bool_field($_, "has-user-changed-service-tier", 1);
+    $_ = set_string_field($_, "default-service-tier", "flex");
+    $_ = set_bool_field($_, "has-seen-fast-mode-announcement", 1);
+}
+PERL
+}
+
+if is_fast_on; then
+  target="false"
+  message="Fast Mode 已关闭"
+else
+  target="true"
+  message="Fast Mode 已开启"
+fi
+
+quit_codex
+backup_file "$STATE"
+backup_file "$STATE_APP_BACKUP"
+rewrite_state_file "$STATE" "$target"
+rewrite_state_file "$STATE_APP_BACKUP" "$target"
+open_codex
+notify_user "$message"
