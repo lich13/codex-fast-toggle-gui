@@ -458,9 +458,9 @@
       lines.push("    $text = Set-StringField $text 'default-service-tier' 'fast'");
       lines.push("    $text = Set-BoolField $text 'has-seen-fast-mode-announcement' $true");
       lines.push("  } else {");
-      lines.push("    $text = Set-BoolField $text 'has-user-changed-service-tier' $true");
-      lines.push("    $text = Set-StringField $text 'default-service-tier' 'flex'");
-      lines.push("    $text = Set-BoolField $text 'has-seen-fast-mode-announcement' $true");
+      lines.push("    $text = Remove-Field $text 'has-user-changed-service-tier'");
+      lines.push("    $text = Remove-Field $text 'default-service-tier'");
+      lines.push("    $text = Remove-Field $text 'has-seen-fast-mode-announcement'");
       lines.push("  }");
       lines.push("  Write-State $Path $text");
       lines.push("}");

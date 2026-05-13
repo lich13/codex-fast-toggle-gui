@@ -212,9 +212,9 @@ if ($enable eq "true") {
     $_ = set_string_field($_, "default-service-tier", "fast");
     $_ = set_bool_field($_, "has-seen-fast-mode-announcement", 1);
 } else {
-    $_ = set_bool_field($_, "has-user-changed-service-tier", 1);
-    $_ = set_string_field($_, "default-service-tier", "flex");
-    $_ = set_bool_field($_, "has-seen-fast-mode-announcement", 1);
+    $_ = remove_field($_, "has-user-changed-service-tier");
+    $_ = remove_field($_, "default-service-tier");
+    $_ = remove_field($_, "has-seen-fast-mode-announcement");
 }
 PERL
 }

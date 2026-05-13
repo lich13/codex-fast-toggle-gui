@@ -21,7 +21,7 @@ Double-click `CodexFastToggle.hta`.
 The GUI has buttons for refresh, enable, and disable. It runs a temporary PowerShell runtime internally so the HTA does not need `ADODB.Stream` or external scripts. The log shows the main and backup tier values after refresh/apply, for example:
 
 ```text
-main=flex; bak=flex; home=C:\Users\you\.codex
+main=<missing>; bak=<missing>; home=C:\Users\you\.codex
 ```
 
 ## State Files
@@ -33,7 +33,7 @@ Both tools edit:
 
 Status display uses `.codex-global-state.json` as the source of truth. The `.bak` file is still synchronized during writes because Codex may preserve or consult it across app launches.
 
-Fast mode is represented by `default-service-tier: "fast"`. Turning it off writes the explicit official non-fast tier `default-service-tier: "flex"` instead of deleting the field, which avoids Codex restoring a default Fast value on relaunch.
+Fast mode is represented by `default-service-tier: "fast"`. Turning it off removes the explicit service-tier override and the related service-tier flags, matching Codex Desktop's normal non-fast state where requests are sent without `service_tier`. This avoids forcing `service_tier: flex`, which some relays or upstreams reject with Cloudflare 502 responses.
 
 Backups are written to:
 
